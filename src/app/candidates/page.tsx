@@ -91,81 +91,80 @@ const ViewModeSwitcher: React.FC<ViewModeSwitcherProps> = ({
       />
 
       {/* Button container */}
-      <div className="flex items-center relative z-10">
-        <motion.button
-          className="flex items-center justify-center w-1/2 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all"
-          style={{ 
-            color: currentView === 'list' ? colors.primary : `${colors.text}99`,
-          }}
-          whileHover={{ 
-            scale: currentView === 'list' ? 1 : 1.05,
-            backgroundColor: currentView === 'list' ? undefined : theme === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'
-          }}
-          whileTap={{ scale: currentView === 'list' ? 0.98 : 0.95 }}
-          animate={{ 
-            color: currentView === 'list' ? colors.primary : `${colors.text}99`,
-          }}
-          onClick={() => onChange('list')}
-          onKeyDown={handleKeyDown('list')}
-          role="tab"
-          tabIndex={0}
-          aria-selected={currentView === 'list'}
-          aria-controls="list-view"
-          id="list-tab"
-        >
-          <div className="relative flex items-center space-x-2">
-            <span className={`relative ${currentView === 'list' ? 'text-primary' : ''}`}>
-              <FiList className="w-5 h-5" />
-              {currentView === 'list' && (
-                <motion.span 
-                  className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-primary"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                />
-              )}
-            </span>
-            <span className={currentView === 'list' ? 'font-semibold' : ''}>List</span>
-          </div>
-        </motion.button>
+      {/* Each direct child of tablist must have role="tab" */}
+      <motion.button
+        className="flex items-center justify-center w-1/2 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all relative z-10"
+        style={{ 
+          color: currentView === 'list' ? colors.primary : `${colors.text}99`,
+        }}
+        whileHover={{ 
+          scale: currentView === 'list' ? 1 : 1.05,
+          backgroundColor: currentView === 'list' ? undefined : theme === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'
+        }}
+        whileTap={{ scale: currentView === 'list' ? 0.98 : 0.95 }}
+        animate={{ 
+          color: currentView === 'list' ? colors.primary : `${colors.text}99`,
+        }}
+        onClick={() => onChange('list')}
+        onKeyDown={handleKeyDown('list')}
+        role="tab"
+        tabIndex={0}
+        aria-selected={currentView === 'list'}
+        aria-controls="list-view"
+        id="list-tab"
+      >
+        <div className="relative flex items-center space-x-2">
+          <span className={`relative ${currentView === 'list' ? 'text-primary' : ''}`}>
+            <FiList className="w-5 h-5" />
+            {currentView === 'list' && (
+              <motion.span 
+                className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-primary"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+              />
+            )}
+          </span>
+          <span className={currentView === 'list' ? 'font-semibold' : ''}>List</span>
+        </div>
+      </motion.button>
 
-        <motion.button
-          className="flex items-center justify-center w-1/2 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all"
-          style={{ 
-            color: currentView === 'kanban' ? colors.primary : `${colors.text}99`,
-          }}
-          whileHover={{ 
-            scale: currentView === 'kanban' ? 1 : 1.05,
-            backgroundColor: currentView === 'kanban' ? undefined : theme === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'
-          }}
-          whileTap={{ scale: currentView === 'kanban' ? 0.98 : 0.95 }}
-          animate={{ 
-            color: currentView === 'kanban' ? colors.primary : `${colors.text}99`,
-          }}
-          onClick={() => onChange('kanban')}
-          onKeyDown={handleKeyDown('kanban')}
-          role="tab"
-          tabIndex={0}
-          aria-selected={currentView === 'kanban'}
-          aria-controls="kanban-view"
-          id="kanban-tab"
-        >
-          <div className="relative flex items-center space-x-2">
-            <span className={`relative ${currentView === 'kanban' ? 'text-primary' : ''}`}>
-              <FiGrid className="w-5 h-5" />
-              {currentView === 'kanban' && (
-                <motion.span 
-                  className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-primary"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                />
-              )}
-            </span>
-            <span className={currentView === 'kanban' ? 'font-semibold' : ''}>Kanban</span>
-          </div>
-        </motion.button>
-      </div>
+      <motion.button
+        className="flex items-center justify-center w-1/2 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all relative z-10"
+        style={{ 
+          color: currentView === 'kanban' ? colors.primary : `${colors.text}99`,
+        }}
+        whileHover={{ 
+          scale: currentView === 'kanban' ? 1 : 1.05,
+          backgroundColor: currentView === 'kanban' ? undefined : theme === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'
+        }}
+        whileTap={{ scale: currentView === 'kanban' ? 0.98 : 0.95 }}
+        animate={{ 
+          color: currentView === 'kanban' ? colors.primary : `${colors.text}99`,
+        }}
+        onClick={() => onChange('kanban')}
+        onKeyDown={handleKeyDown('kanban')}
+        role="tab"
+        tabIndex={0}
+        aria-selected={currentView === 'kanban'}
+        aria-controls="kanban-view"
+        id="kanban-tab"
+      >
+        <div className="relative flex items-center space-x-2">
+          <span className={`relative ${currentView === 'kanban' ? 'text-primary' : ''}`}>
+            <FiGrid className="w-5 h-5" />
+            {currentView === 'kanban' && (
+              <motion.span 
+                className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-primary"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+              />
+            )}
+          </span>
+          <span className={currentView === 'kanban' ? 'font-semibold' : ''}>Kanban</span>
+        </div>
+      </motion.button>
     </div>
   );
 }
