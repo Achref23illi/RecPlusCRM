@@ -2,7 +2,7 @@
 import React from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'success';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'success' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -65,6 +65,13 @@ const Button: React.FC<ButtonProps> = ({
           backgroundColor: '#10B981', // emerald-500
           color: 'white',
           hoverBg: '#059669', // emerald-600
+          borderColor: 'transparent',
+        };
+      case 'ghost':
+        return {
+          backgroundColor: 'transparent',
+          color: colors.primary,
+          hoverBg: theme === 'light' ? 'rgba(37, 99, 235, 0.1)' : 'rgba(59, 130, 246, 0.2)',
           borderColor: 'transparent',
         };
       default:

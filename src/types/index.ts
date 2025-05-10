@@ -1,4 +1,12 @@
 // src/types/index.ts
+
+// Define a new type for tags with color information
+export interface TagWithColor {
+  id: string;
+  name: string;
+  color?: string; // Hexadecimal color code or CSS color name
+}
+
 export interface Candidate {
   id: string;
   firstName: string;
@@ -6,11 +14,11 @@ export interface Candidate {
   email: string;
   phone: string;
   position: string;
-  status: 'new' | 'interview' | 'offer' | 'hired' | 'rejected';
+  status: 'new' | 'interview' | 'offer' | 'hired' | 'rejected' | 'waiting';
   cvUrl?: string;
   createdAt: Date;
   updatedAt: Date;
-  tags: string[];
+  tags: string[] | TagWithColor[]; // Support both string[] for backward compatibility and the new TagWithColor[]
   rating?: number;
   assignedTo?: string;
   officeId: string;
