@@ -2382,7 +2382,7 @@ const CompaniesPage = () => {
                                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                                   backgroundColor: theme === 'light' ? 'white' : '#1F2937'
                                 }}
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={{ opacity: 1, y: 0 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 className={`p-3 rounded-lg mb-2 cursor-pointer border ${
