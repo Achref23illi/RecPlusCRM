@@ -1,17 +1,16 @@
 // src/components/ui/Button.tsx
 import React from 'react';
+import { motion } from 'framer-motion';
 import { useTheme } from '@/app/context/ThemeContext';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'success' | 'ghost';
-type ButtonSize = 'sm' | 'md' | 'lg';
-
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'success' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   fullWidth?: boolean;
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -25,11 +24,9 @@ const Button: React.FC<ButtonProps> = ({
   children,
   className = '',
   disabled,
-  ...props
 }) => {
   const { colors, theme } = useTheme();
-  
-  // Determine button styles based on variant
+
   const getButtonStyles = () => {
     switch (variant) {
       case 'primary':
@@ -50,7 +47,7 @@ const Button: React.FC<ButtonProps> = ({
         return {
           backgroundColor: 'transparent',
           color: colors.primary,
-          hoverBg: theme === 'light' ? '#EFF6FF' : '#1E3A8A', // light blue / dark blue
+          hoverBg: theme === 'light' ? '#EFF6FF' : '#1E40AF', // light blue / darker blue for better contrast
           borderColor: colors.primary,
         };
       case 'danger':
@@ -70,59 +67,68 @@ const Button: React.FC<ButtonProps> = ({
       case 'ghost':
         return {
           backgroundColor: 'transparent',
-          color: colors.primary,
-          hoverBg: theme === 'light' ? 'rgba(37, 99, 235, 0.1)' : 'rgba(59, 130, 246, 0.2)',
+          color: colors.text,
+          hoverBg: theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
           borderColor: 'transparent',
         };
       default:
         return {
           backgroundColor: colors.primary,
           color: 'white',
-          hoverBg: theme === 'light' ? '#2563EB' : '#3B82F6', // darker/lighter blue
+          hoverBg: theme === 'light' ? '#2563EB' : '#3B82F6',
           borderColor: 'transparent',
         };
     }
   };
 
-  // Determine button size
-  const getButtonSize = () => {
-    switch (size) {
-      case 'sm':
-        return 'px-2.5 py-1.5 text-xs';
-      case 'md':
-        return 'px-4 py-2 text-sm';
-      case 'lg':
-        return 'px-6 py-3 text-base';
-      default:
-        return 'px-4 py-2 text-sm';
-    }
+  const styles = getButtonStyles();
+
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-4 py-2 text-sm',
+    lg: 'px-6 py-3 text-base',
   };
 
-  const buttonStyles = getButtonStyles();
-  const sizeClasses = getButtonSize();
-  const isDisabled = disabled || isLoading;
+  const buttonClasses = `
+    rounded-md font-medium transition-all flex items-center justify-center
+    ${sizeClasses[size]}
+    ${fullWidth ? 'w-full' : ''}
+    ${disabled || isLoading ? 'opacity-60 cursor-not-allowed' : ''}
+    ${className}
+  `;
 
+  // Animation states
+  const hoverAnimation = !(disabled || isLoading) ? { 
+    scale: 1.03, 
+    backgroundColor: styles.hoverBg,
+    transition: { duration: 0.2 } 
+  } : {};
+
+  const tapAnimation = !(disabled || isLoading) ? { 
+    scale: 0.97,
+    transition: { duration: 0.1 } 
+  } : {};
+
+  
   return (
-    <button
-      className={`
-        flex items-center justify-center font-medium rounded-md transition-colors duration-200
-        ${sizeClasses}
-        ${fullWidth ? 'w-full' : ''}
-        ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'hover:bg-opacity-90'}
-        ${className}
-      `}
-      disabled={isDisabled}
+    <motion.button
+      className={buttonClasses}
       style={{
-        backgroundColor: buttonStyles.backgroundColor,
-        color: buttonStyles.color,
-        borderWidth: variant === 'outline' ? '1px' : '0',
-        borderColor: buttonStyles.borderColor,
+        backgroundColor: styles.backgroundColor,
+        color: styles.color,
+        border: `1px solid ${styles.borderColor}`,
+        boxShadow: variant === 'outline' ? `0 0 0 1px ${styles.borderColor}` : undefined,
       }}
-      {...props}
+      disabled={disabled || isLoading}
+      whileHover={hoverAnimation}
+      whileTap={tapAnimation}
+      initial={{ opacity: 0.9 }}
+      animate={{ opacity: 1 }}
+      // Type assertion to fix type conflict with motion.button
     >
       {isLoading && (
         <svg
-          className="animate-spin -ml-1 mr-2 h-4 w-4 text-current"
+          className="animate-spin -ml-1 mr-2 h-4 w-4"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -142,11 +148,10 @@ const Button: React.FC<ButtonProps> = ({
           ></path>
         </svg>
       )}
-      
       {!isLoading && leftIcon && <span className="mr-2">{leftIcon}</span>}
       {children}
-      {!isLoading && rightIcon && <span className="ml-2">{rightIcon}</span>}
-    </button>
+      {rightIcon && <span className="ml-2">{rightIcon}</span>}
+    </motion.button>
   );
 };
 

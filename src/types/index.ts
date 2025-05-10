@@ -41,6 +41,7 @@ export interface Company {
 }
 
 export interface Job {
+  candidates: number;
   id: string;
   title: string;
   companyId: string;

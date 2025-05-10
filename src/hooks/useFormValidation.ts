@@ -13,6 +13,7 @@ interface UseFormValidationResult<T> {
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   setFieldValue: (field: keyof T, value: T[keyof T]) => void;
   validate: () => boolean;
+  touched: () => Record<keyof T, boolean>;
   reset: (newValues?: T) => void;
   setErrors: React.Dispatch<React.SetStateAction<Record<keyof T, string>>>;
 }
@@ -107,6 +108,13 @@ export function useFormValidation<T extends Record<string, unknown>>(
     handleChange,
     setFieldValue,
     validate,
+    touched: () => {
+      const touchedFields = {} as Record<keyof T, boolean>;
+      (Object.keys(values) as Array<keyof T>).forEach(key => {
+        touchedFields[key] = !!values[key];
+      });
+      return touchedFields;
+    },
     reset,
     setErrors,
   };

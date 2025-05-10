@@ -10,6 +10,8 @@ interface CardProps {
   footer?: React.ReactNode;
   className?: string;
   noPadding?: boolean;
+  customBorderColor?: string;
+  customRingColor?: string;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -20,13 +22,19 @@ const Card: React.FC<CardProps> = ({
   footer,
   className = '',
   noPadding = false,
+  customBorderColor,
+  customRingColor,
 }) => {
   const { colors } = useTheme();
 
   return (
     <div
       className={`rounded-lg shadow-sm ${className}`}
-      style={{ backgroundColor: colors.card, borderColor: colors.border }}
+      style={{ 
+        backgroundColor: colors.card, 
+        borderColor: customBorderColor || colors.border,
+        boxShadow: customRingColor ? `0 0 0 1px ${customRingColor}` : undefined
+      }}
     >
       {(title || headerRight) && (
         <div 
