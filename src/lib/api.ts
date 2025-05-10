@@ -81,6 +81,7 @@ let mockJobs: Job[] = Array.from({ length: 30 }).map((_, index) => {
     updatedAt: new Date(Date.now() - Math.random() * 5000000000),
     deadline: index % 2 === 0 ? new Date(Date.now() + Math.random() * 10000000000) : undefined,
     officeId: `${(index % 3) + 1}`,
+    candidates: 0,
   };
 });
 
