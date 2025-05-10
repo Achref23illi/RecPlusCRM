@@ -508,14 +508,17 @@ const CompaniesPage = () => {
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 0 }, // Removed the y-offset to avoid the upward animation
     visible: {
       opacity: 1,
       y: 0,
       transition: {
         type: 'spring',
         stiffness: 100,
-        damping: 12
+        damping: 12,
+        duration: 0.1, // Reduced duration
+        when: "beforeChildren", // This ensures parent containers animate before children
+        staggerChildren: 0.01 // Significantly reduced stagger time between children
       }
     }
   };
