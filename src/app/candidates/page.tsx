@@ -1,7 +1,6 @@
 // src/app/candidates/page.tsx
 'use client';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import { useAuth } from '@/app/context/AuthContext';

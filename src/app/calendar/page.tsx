@@ -81,11 +81,7 @@ const CalendarPage = () => {
   ]);
 
   // Generate calendar grid based on current date and view mode
-  useEffect(() => {
-    generateCalendar();
-  }, [currentDate, viewMode, events]);
-
-  const generateCalendar = () => {
+  const generateCalendar = React.useCallback(() => {
     const today = new Date();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -136,7 +132,11 @@ const CalendarPage = () => {
     }
     
     setCalendar(grid);
-  };
+  }, [currentDate, events]);
+
+  useEffect(() => {
+    generateCalendar();
+  }, [currentDate, viewMode, events, generateCalendar]);
 
   // Handle navigation
   const navigateMonth = (direction: 'prev' | 'next') => {

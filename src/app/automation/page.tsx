@@ -201,7 +201,7 @@ const AutomationPage = () => {
                 <div className="flex items-center">
                   <h3 className="font-medium" style={{ color: colors.text }}>{template.name}</h3>
                   <Badge 
-                    variant={template.status === 'active' ? 'success' : 'default'}
+                    variant={template.status === 'active' ? 'success' : 'secondary'}
                     className="ml-2"
                   >
                     {template.status === 'active' ? 'Active' : 'Inactive'}
@@ -249,7 +249,7 @@ const AutomationPage = () => {
                 <div className="flex items-center">
                   <h3 className="font-medium" style={{ color: colors.text }}>{workflow.name}</h3>
                   <Badge 
-                    variant={workflow.status === 'active' ? 'success' : 'default'}
+                    variant={workflow.status === 'active' ? 'success' : 'secondary'}
                     className="ml-2"
                   >
                     {workflow.status === 'active' ? 'Active' : 'Inactive'}
@@ -311,7 +311,7 @@ const AutomationPage = () => {
                 <div className="flex items-center">
                   <h3 className="font-medium" style={{ color: colors.text }}>{notification.name}</h3>
                   <Badge 
-                    variant={notification.status === 'active' ? 'success' : 'default'}
+                    variant={notification.status === 'active' ? 'success' : 'secondary'}
                     className="ml-2"
                   >
                     {notification.status === 'active' ? 'Active' : 'Inactive'}

@@ -28,8 +28,11 @@ export function useApiQuery<T>(apiCall: () => Promise<T>, dependencies: unknown[
   }, [apiCall]);
 
   useEffect(() => {
+    // Individual dependencies from the spread array should be listed
+    // instead of using ...dependencies
     fetchData();
-  }, [...dependencies, fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, dependencies);
 
   return { data, loading, error, refetch: fetchData };
 }
