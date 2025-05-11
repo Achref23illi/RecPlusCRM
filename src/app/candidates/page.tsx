@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import { useAuth } from '@/app/context/AuthContext';
-import { api } from '@/lib/api';
+import { apiService } from '@/lib';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { Candidate } from '@/types';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
@@ -187,7 +187,7 @@ const CandidatesPage = () => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const { data: candidates, loading, error, refetch } = useApiQuery<Candidate[]>(
-    () => api.candidates.getAll(user?.role === 'super_admin' ? undefined : user?.officeId),
+    () => apiService.candidates.getAll(user?.role === 'super_admin' ? undefined : user?.officeId),
     [user?.officeId]
   );
 
@@ -363,7 +363,7 @@ const CandidatesPage = () => {
         recruited: 'hired',
       };
 
-      await api.candidates.update(candidateId, {
+      await apiService.candidates.update(candidateId, {
         status: stageToStatusMap[newStage] as Candidate['status'],
       });
 
@@ -376,9 +376,9 @@ const CandidatesPage = () => {
   const handleSaveCandidate = async (candidate: Candidate) => {
     try {
       if (candidate.id.startsWith('temp-')) {
-        await api.candidates.create(candidate);
+        await apiService.candidates.create(candidate);
       } else {
-        await api.candidates.update(candidate.id, candidate);
+        await apiService.candidates.update(candidate.id, candidate);
       }
 
       refetch();

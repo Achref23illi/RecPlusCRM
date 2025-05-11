@@ -5,7 +5,7 @@ import { useTheme } from '@/app/context/ThemeContext';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'success' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs'| 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
@@ -87,6 +87,7 @@ const Button: React.FC<ButtonProps> = ({
     sm: 'px-3 py-1.5 text-xs',
     md: 'px-4 py-2 text-sm',
     lg: 'px-6 py-3 text-base',
+    xs: 'px-2 py-1 text-xs',
   };
 
   const buttonClasses = `

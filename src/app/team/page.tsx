@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Table from '@/components/ui/Table';
 import Badge from '@/components/ui/Badge';
-import { api } from '@/lib/api';
+import { apiService } from '@/lib';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { User, Office } from '@/types';
 
@@ -44,12 +44,12 @@ const TeamPage = () => {
 
   // Fetch users and offices based on current user's access
   const { data: users, loading, error, refetch } = useApiQuery<User[]>(
-    () => api.users.getAll(currentUser?.role === 'super_admin' ? undefined : currentUser?.officeId),
+    () => apiService.users.getAll(currentUser?.role === 'super_admin' ? undefined : currentUser?.officeId),
     [currentUser?.role, currentUser?.officeId]
   );
   
   const { data: offices } = useApiQuery<Office[]>(
-    () => api.offices.getAll(),
+    () => apiService.offices.getAll(),
     []
   );
 

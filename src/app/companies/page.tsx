@@ -8,9 +8,9 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import Badge from '@/components/ui/Badge';
+//import Badge from '@/components/ui/Badge';
 import CompanyDetailModal from '@/components/companies/CompanyDetailModal';
-import { api } from '@/lib/api';
+import { apiService } from '@/lib';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { Company, Job } from '@/types';
 import { 
@@ -94,13 +94,13 @@ const CompaniesPage = () => {
 
   // Fetch companies based on user's office access
   const { data: companies, loading, error, refetch } = useApiQuery<Company[]>(
-    () => api.companies.getAll(user?.role === 'super_admin' ? undefined : user?.officeId),
+    () => apiService.companies.getAll(user?.role === 'super_admin' ? undefined : user?.officeId),
     [user?.officeId]
   );
 
   // Fetch jobs to show in company detail modal
   const { data: jobs } = useApiQuery<Job[]>(
-    () => api.jobs.getAll(user?.role === 'super_admin' ? undefined : user?.officeId),
+    () => apiService.jobs.getAll(user?.role === 'super_admin' ? undefined : user?.officeId),
     [user?.officeId]
   );
 
@@ -263,9 +263,10 @@ const CompaniesPage = () => {
     let mostCommonIndustry = '';
     let maxCount = 0;
     Object.entries(industryCount).forEach(([industry, count]) => {
-      if (count > maxCount) {
+      const countNum = count as number;
+      if (countNum > maxCount) {
         mostCommonIndustry = industry;
-        maxCount = count;
+        maxCount = countNum;
       }
     });
     
@@ -286,7 +287,7 @@ const CompaniesPage = () => {
       mostCommonIndustry,
       recentlyAdded,
       industries: Object.entries(industryCount)
-        .sort((a, b) => b[1] - a[1])
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
         .slice(0, 5) // Top 5 industries
     };
   }, [companies]);
@@ -322,11 +323,11 @@ const CompaniesPage = () => {
     try {
       if (company.id.startsWith('temp-')) {
         // Create new company
-        await api.companies.create(company);
+        await apiService.companies.create(company);
         addRecentActivity(company.id, 'created');
       } else {
         // Update existing company
-        await api.companies.update(company.id, company);
+        await apiService.companies.update(company.id, company);
         addRecentActivity(company.id, 'updated');
       }
       
@@ -340,9 +341,9 @@ const CompaniesPage = () => {
   const handleDeleteCompany = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this company?')) {
       try {
-        await api.companies.delete(id);
+        await apiService.companies.delete(id);
         addRecentActivity(id, 'deleted');
-        setFavoriteCompanies(prevFavorites => 
+        setFavoriteCompanies(prevFavorites =>
           prevFavorites.filter(companyId => companyId !== id)
         );
         refetch();
@@ -360,7 +361,7 @@ const CompaniesPage = () => {
       try {
         // Delete each selected company
         await Promise.all(
-          selectedCompanies.map(id => api.companies.delete(id))
+          selectedCompanies.map(id => apiService.companies.delete(id))
         );
         
         // Update favorites and activity
@@ -588,7 +589,8 @@ const CompaniesPage = () => {
 
   return (
     <AnimatePresence mode="wait">
-      {/* Progress bar at the top of the page */}
+      <motion.div key="main-content" className="w-full">
+        {/* Progress bar at the top of the page */}
       <motion.div 
         className="fixed top-0 left-0 right-0 h-1 z-50"
         style={{ 
@@ -851,6 +853,7 @@ const CompaniesPage = () => {
             <AnimatePresence>
               {isStatsExpanded && (
                 <motion.div
+                  key="stats-expanded"
                   variants={fadeInVariants}
                   initial="hidden"
                   animate="visible"
@@ -1260,6 +1263,8 @@ const CompaniesPage = () => {
                       <button 
                         onClick={() => setSearchTerm('')}
                         className="focus:outline-none"
+                        title="Clear search"
+                        aria-label="Clear search"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1320,6 +1325,7 @@ const CompaniesPage = () => {
               <AnimatePresence>
                 {showAdvancedFilters && (
                   <motion.div
+                    key="advanced-filters"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -1746,27 +1752,30 @@ const CompaniesPage = () => {
                         </motion.div>
                       )}
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         {companies.map((company) => (
-                          <motion.div 
+                          <motion.div
                             key={company.id}
                             variants={itemVariants}
                             layoutId={`company-${company.id}`}
-                            whileHover={{ y: -4, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                            whileHover={{ y: -5, boxShadow: '0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
+                            initial={{opacity: 0.5, y: 10}}
+                            animate={{opacity: 1, y: 0}}
+                            transition={{duration: 0.3}}
                             onHoverStart={() => setHoveredCompany(company.id)}
                             onHoverEnd={() => setHoveredCompany(null)}
                           >
-                            <Card 
+                            <Card
                               className={`h-full flex flex-col relative ${
                                 isSelectionMode ? '' : 'cursor-pointer'
                               } ${
                                 selectedCompanies.includes(company.id) ? 'ring-2' : ''
-                              }`} 
-                              customBorderColor={favoriteCompanies.includes(company.id) 
-                                ? `${colors.primary}80` 
+                              } overflow-hidden`}
+                              customBorderColor={favoriteCompanies.includes(company.id)
+                                ? `${colors.primary}80`
                                 : colors.border}
-                              customRingColor={selectedCompanies.includes(company.id) 
-                                ? colors.primary 
+                              customRingColor={selectedCompanies.includes(company.id)
+                                ? colors.primary
                                 : 'transparent'}
                             >
                               {/* Selection checkbox for bulk actions */}
@@ -1825,127 +1834,165 @@ const CompaniesPage = () => {
                                 </motion.button>
                               </div>
                               
-                              <div 
-                                onClick={() => !isSelectionMode && handleCompanyClick(company.id)} 
-                                className="flex-grow flex flex-col"
+                              <div
+                                onClick={() => !isSelectionMode && handleCompanyClick(company.id)}
+                                className="flex-grow flex flex-col p-5"
                               >
-                                <div className="mb-3 flex flex-col items-start">
-                                  <div className="flex w-full justify-between items-start mb-2">
+                                <div className="flex flex-col items-start">
+                                  <div className="flex w-full justify-between items-start mb-4">
                                     <div className="flex items-center">
-                                      <div 
-                                        className="w-10 h-10 rounded-md flex items-center justify-center text-white text-sm font-medium mr-3"
-                                        style={{ backgroundColor: getIndustryColor(company.industry).text }}
+                                      <div
+                                        className="w-11 h-11 rounded-lg flex items-center justify-center text-white text-base font-bold mr-3 shadow-sm"
+                                        style={{
+                                          background: `linear-gradient(135deg, ${getIndustryColor(company.industry).text}, ${getIndustryColor(company.industry).border})`
+                                        }}
                                       >
                                         {company.name.charAt(0)}
                                       </div>
                                       <div>
-                                        <h3 
-                                          className="font-medium text-base truncate max-w-[150px]" 
+                                        <h3
+                                          className="font-semibold text-lg truncate max-w-[170px] mb-1.5"
                                           style={{ color: colors.text }}
                                         >
                                           {company.name}
                                         </h3>
-                                        <div 
-                                          className="inline-block px-2 py-0.5 rounded-md text-xs"
-                                          style={{
-                                            backgroundColor: getIndustryColor(company.industry).bg,
-                                            color: getIndustryColor(company.industry).text,
-                                            border: `1px solid ${getIndustryColor(company.industry).border}`
-                                          }}
-                                        >
-                                          {company.industry}
+                                        <div className="flex items-center gap-2">
+                                          <div
+                                            className="inline-block px-2.5 py-1 rounded-md text-xs font-medium"
+                                            style={{
+                                              backgroundColor: getIndustryColor(company.industry).bg,
+                                              color: getIndustryColor(company.industry).text,
+                                              border: `1px solid ${getIndustryColor(company.industry).border}`
+                                            }}
+                                          >
+                                            {company.industry}
+                                          </div>
+
+                                          <div className="h-4 w-px" style={{ backgroundColor: colors.border }}></div>
+
+                                          <div className="flex items-center gap-1">
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke={company.openPositions > 0 ? "#10B981" : colors.primary} viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                            </svg>
+                                            <span className="text-xs font-medium" style={{ color: company.openPositions > 0 ? "#10B981" : colors.primary }}>
+                                              {company.openPositions} {company.openPositions === 1 ? 'Job' : 'Jobs'}
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
-                                    
-                                    <Badge variant={company.openPositions > 0 ? 'success' : 'primary'}>
-                                      {company.openPositions} {company.openPositions === 1 ? 'Job' : 'Jobs'}
-                                    </Badge>
                                   </div>
                                 </div>
                                 
-                                <div className="flex flex-col gap-1.5 mb-4 text-sm">
-                                  <div className="flex items-center" style={{ color: `${colors.text}99` }}>
-                                    <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                    <span className="truncate">{company.contactPerson}</span>
-                                  </div>
-                                  
-                                  {company.contactEmail && (
-                                    <div className="flex items-center" style={{ color: `${colors.text}99` }}>
-                                      <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                <div className="flex flex-col gap-2.5 mb-4 text-sm mt-2">
+                                  <div className="flex items-center border-l-2 pl-2"
+                                       style={{ color: `${colors.text}99`, borderColor: `${colors.secondary}40` }}>
+                                    <div className="bg-opacity-10 p-1.5 rounded-md mr-2 flex-shrink-0"
+                                         style={{ backgroundColor: `${colors.secondary}30` }}>
+                                      <svg className="w-4 h-4" fill="none" stroke={colors.secondary} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                       </svg>
+                                    </div>
+                                    <span className="truncate font-medium" style={{ color: colors.text }}>{company.contactPerson}</span>
+                                  </div>
+
+                                  {company.contactEmail && (
+                                    <div className="flex items-center border-l-2 pl-2"
+                                         style={{ color: `${colors.text}99`, borderColor: `${colors.primary}40` }}>
+                                      <div className="bg-opacity-10 p-1.5 rounded-md mr-2 flex-shrink-0"
+                                           style={{ backgroundColor: `${colors.primary}30` }}>
+                                        <svg className="w-4 h-4" fill="none" stroke={colors.primary} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                      </div>
                                       <span className="truncate">{company.contactEmail}</span>
                                     </div>
                                   )}
-                                  
+
                                   {company.website && (
-                                    <div className="flex items-center" style={{ color: `${colors.text}99` }}>
-                                      <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                                      </svg>
-                                      <span className="truncate">
+                                    <div className="flex items-center border-l-2 pl-2"
+                                         style={{ color: `${colors.text}99`, borderColor: `${colors.secondary}40` }}>
+                                      <div className="bg-opacity-10 p-1.5 rounded-md mr-2 flex-shrink-0"
+                                           style={{ backgroundColor: `${colors.secondary}30` }}>
+                                        <svg className="w-4 h-4" fill="none" stroke={colors.secondary} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                        </svg>
+                                      </div>
+                                      <a
+                                        href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="truncate hover:underline"
+                                        style={{ color: colors.primary }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
                                         {company.website.replace(/(^\w+:|^)\/\//, '').replace(/\/$/, '')}
-                                      </span>
+                                      </a>
                                     </div>
                                   )}
-                                  
+
                                   {company.contactPhone && (
-                                    <div className="flex items-center" style={{ color: `${colors.text}99` }}>
-                                      <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                      </svg>
+                                    <div className="flex items-center border-l-2 pl-2"
+                                         style={{ color: `${colors.text}99`, borderColor: `${colors.primary}40` }}>
+                                      <div className="bg-opacity-10 p-1.5 rounded-md mr-2 flex-shrink-0"
+                                           style={{ backgroundColor: `${colors.primary}30` }}>
+                                        <svg className="w-4 h-4" fill="none" stroke={colors.primary} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                        </svg>
+                                      </div>
                                       <span className="truncate">{company.contactPhone}</span>
                                     </div>
                                   )}
                                 </div>
                               </div>
                               
-                              <div 
-                                className="flex justify-between items-center pt-3 mt-auto border-t"
-                                style={{ borderColor: colors.border }}
+                              <div
+                                className="flex justify-between items-center pt-4 mt-auto border-t"
+                                style={{ borderColor: `${colors.border}50` }}
                               >
-                                <div className="text-xs" style={{ color: `${colors.text}80` }}>
-                                  Added {new Date(company.createdAt).toLocaleDateString()}
+                                <div className="flex items-center gap-1.5 text-xs" style={{ color: `${colors.text}70` }}>
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  <span>Added {new Date(company.createdAt).toLocaleDateString()}</span>
                                 </div>
-                                
-                                <div className="flex gap-1">
-                                  <motion.button 
+
+                                <div className="flex gap-2">
+                                  <motion.button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleCompanyClick(company.id);
                                     }}
-                                    className="p-1.5 rounded-full"
-                                    whileHover={{ 
-                                      scale: 1.1, 
-                                      backgroundColor: theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)' 
+                                    className="p-2 rounded-full flex items-center justify-center bg-opacity-10 text-xs gap-1 font-medium"
+                                    style={{ backgroundColor: `${colors.primary}15`, color: colors.primary }}
+                                    whileHover={{
+                                      scale: 1.05,
+                                      backgroundColor: `${colors.primary}25`
                                     }}
                                     whileTap={{ scale: 0.95 }}
-                                    style={{ color: colors.primary }}
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
+                                    <span>View</span>
                                   </motion.button>
-                                  
-                                  <motion.button 
+
+                                  <motion.button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDeleteCompany(company.id);
                                     }}
-                                    className="p-1.5 rounded-full"
-                                    whileHover={{ 
-                                      scale: 1.1, 
-                                      backgroundColor: theme === 'light' ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.2)' 
+                                    className="p-2 rounded-full flex items-center justify-center bg-opacity-10 text-xs"
+                                    style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#EF4444' }}
+                                    whileHover={{
+                                      scale: 1.05,
+                                      backgroundColor: 'rgba(239,68,68,0.2)'
                                     }}
                                     whileTap={{ scale: 0.95 }}
-                                    style={{ color: '#EF4444' }}
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                   </motion.button>
                                 </div>
@@ -1955,6 +2002,7 @@ const CompaniesPage = () => {
                               <AnimatePresence>
                                 {hoveredCompany === company.id && !isSelectionMode && (
                                   <motion.div
+                                    key={`hover-menu-${company.id}`}
                                     className="absolute right-2 top-10 z-10 bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden border"
                                     style={{ borderColor: colors.border }}
                                     initial={{ opacity: 0, scale: 0.9, y: -5 }}
@@ -2043,27 +2091,33 @@ const CompaniesPage = () => {
                         </motion.div>
                       )}
                       
-                      <Card noPadding>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full divide-y" style={{ borderColor: colors.border }}>
-                            <thead>
+                      <Card noPadding className="overflow-hidden shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 hover:shadow-xl transition-shadow duration-300">
+                        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                          <table className="min-w-full divide-y" style={{ borderColor: `${colors.border}40` }}>
+                            <thead className="sticky top-0 z-10" style={{ 
+                              backgroundColor: theme === 'light' ? '#f9fafb' : '#1f2937', 
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                            }}>
                               <tr>
                                 {isSelectionMode && (
-                                  <th style={{ width: '40px' }} className="px-3 py-3 text-left">
-                                    <div 
-                                      className="w-5 h-5 rounded-md"
-                                      style={{ 
+                                  <th className="pl-4 pr-0 py-3.5 w-10 text-left">
+                                    <div
+                                      className="w-5 h-5 rounded-md cursor-pointer transition-all duration-200 relative flex items-center justify-center"
+                                      style={{
                                         backgroundColor: selectedCompanies.length === companies.length && companies.length > 0
-                                          ? colors.primary 
+                                          ? colors.primary
                                           : theme === 'light' ? 'white' : colors.card,
                                         border: `1px solid ${selectedCompanies.length === companies.length && companies.length > 0
-                                          ? colors.primary 
-                                          : colors.border}`
+                                          ? colors.primary
+                                          : colors.border}`,
+                                        boxShadow: selectedCompanies.length === companies.length && companies.length > 0
+                                          ? `0 0 0 2px ${colors.primary}30`
+                                          : 'none'
                                       }}
                                       onClick={() => {
                                         if (selectedCompanies.length === companies.length) {
                                           // Deselect all in this group
-                                          setSelectedCompanies(prev => 
+                                          setSelectedCompanies(prev =>
                                             prev.filter(id => !companies.some(c => c.id === id))
                                           );
                                         } else {
@@ -2077,110 +2131,189 @@ const CompaniesPage = () => {
                                       }}
                                     >
                                       {selectedCompanies.length === companies.length && companies.length > 0 && (
-                                        <div className="flex items-center justify-center h-full">
-                                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                          </svg>
-                                        </div>
+                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
                                       )}
+                                      
+                                      <motion.span 
+                                        className="absolute -top-1.5 -right-1.5 bg-white dark:bg-gray-800 rounded-full text-[9px] px-1 font-semibold"
+                                        style={{ 
+                                          color: colors.primary,
+                                          border: `1px solid ${colors.primary}50`,
+                                          opacity: selectedCompanies.length > 0 ? 1 : 0,
+                                          scale: selectedCompanies.length > 0 ? 1 : 0.5
+                                        }}
+                                        animate={{ 
+                                          opacity: selectedCompanies.length > 0 ? 1 : 0,
+                                          scale: selectedCompanies.length > 0 ? 1 : 0.5
+                                        }}
+                                      >
+                                        {selectedCompanies.length}
+                                      </motion.span>
                                     </div>
                                   </th>
                                 )}
                                 <th
-                                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                  style={{ 
-                                    color: `${colors.text}99`,
-                                    backgroundColor: colors.card
+                                  className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider transition-colors duration-200 whitespace-nowrap"
+                                  style={{
+                                    color: colors.primary,
                                   }}
                                 >
-                                  Company
+                                  <div className="flex items-center gap-1.5">
+                                    <motion.div 
+                                      whileHover={{ rotate: 360 }} 
+                                      transition={{ duration: 0.5 }}
+                                      className="bg-opacity-10 p-1 rounded-full"
+                                      style={{ backgroundColor: `${colors.primary}20` }}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                      </svg>
+                                    </motion.div>
+                                    <span>Company</span>
+                                  </div>
                                 </th>
                                 <th
-                                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                  style={{ 
-                                    color: `${colors.text}99`,
-                                    backgroundColor: colors.card
+                                  className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider transition-colors duration-200 whitespace-nowrap"
+                                  style={{
+                                    color: colors.secondary,
                                   }}
                                 >
-                                  Industry
+                                  <div className="flex items-center gap-1.5">
+                                    <motion.div 
+                                      whileHover={{ rotate: 360 }} 
+                                      transition={{ duration: 0.5 }}
+                                      className="bg-opacity-10 p-1 rounded-full"
+                                      style={{ backgroundColor: `${colors.secondary}20` }}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                                      </svg>
+                                    </motion.div>
+                                    <span>Industry</span>
+                                  </div>
                                 </th>
                                 <th
-                                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                  style={{ 
-                                    color: `${colors.text}99`,
-                                    backgroundColor: colors.card
+                                  className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider transition-colors duration-200 whitespace-nowrap"
+                                  style={{
+                                    color: colors.primary,
                                   }}
                                 >
-                                  Contact
+                                  <div className="flex items-center gap-1.5">
+                                    <motion.div 
+                                      whileHover={{ rotate: 360 }} 
+                                      transition={{ duration: 0.5 }}
+                                      className="bg-opacity-10 p-1 rounded-full"
+                                      style={{ backgroundColor: `${colors.primary}20` }}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                      </svg>
+                                    </motion.div>
+                                    <span>Contact</span>
+                                  </div>
                                 </th>
                                 <th
-                                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                  style={{ 
-                                    color: `${colors.text}99`,
-                                    backgroundColor: colors.card
+                                  className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider transition-colors duration-200 whitespace-nowrap"
+                                  style={{
+                                    color: colors.secondary,
                                   }}
                                 >
-                                  Jobs
+                                  <div className="flex items-center gap-1.5">
+                                    <motion.div 
+                                      whileHover={{ rotate: 360 }} 
+                                      transition={{ duration: 0.5 }}
+                                      className="bg-opacity-10 p-1 rounded-full"
+                                      style={{ backgroundColor: `${colors.secondary}20` }}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                      </svg>
+                                    </motion.div>
+                                    <span>Jobs</span>
+                                  </div>
                                 </th>
                                 <th
-                                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                  style={{ 
-                                    color: `${colors.text}99`,
-                                    backgroundColor: colors.card
+                                  className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider transition-colors duration-200 whitespace-nowrap"
+                                  style={{
+                                    color: colors.primary,
                                   }}
                                 >
-                                  Added
+                                  <div className="flex items-center gap-1.5">
+                                    <motion.div 
+                                      whileHover={{ rotate: 360 }} 
+                                      transition={{ duration: 0.5 }}
+                                      className="bg-opacity-10 p-1 rounded-full"
+                                      style={{ backgroundColor: `${colors.primary}20` }}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    </motion.div>
+                                    <span className="hidden sm:inline">Added</span>
+                                    <span className="sm:hidden">Date</span>
+                                  </div>
                                 </th>
                                 <th
-                                  className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider"
-                                  style={{ 
-                                    color: `${colors.text}99`,
-                                    backgroundColor: colors.card
+                                  className="pl-4 pr-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider transition-colors duration-200 whitespace-nowrap"
+                                  style={{
+                                    color: colors.secondary,
                                   }}
                                 >
-                                  Actions
+                                  <span className="hidden sm:inline">Actions</span>
+                                  <span className="sm:hidden">
+                                    <svg className="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                                    </svg>
+                                  </span>
                                 </th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y" style={{ borderColor: colors.border }}>
-                              {companies.map((company) => (
+                            <tbody className="divide-y" style={{ borderColor: `${colors.border}40` }}>
+                              {companies.map((company, index) => (
                                 <motion.tr
                                   key={company.id}
                                   layoutId={`company-row-${company.id}`}
                                   variants={itemVariants}
-                                  className={`hover:bg-opacity-50 ${isSelectionMode ? '' : 'cursor-pointer'} transition-colors duration-150 ${
-                                    selectedCompanies.includes(company.id) ? 'bg-opacity-10' : ''
-                                  }`}
+                                  className={`transition-all duration-200 group ${isSelectionMode ? '' : 'cursor-pointer'}`}
                                   style={{
-                                    backgroundColor: colors.card,
-                                    border: favoriteCompanies.includes(company.id) 
-                                      ? `1px solid ${colors.primary}40` 
-                                      : 'none',
-                                    borderLeft: favoriteCompanies.includes(company.id) 
-                                      ? `3px solid ${colors.primary}` 
-                                      : 'none',
+                                    backgroundColor: selectedCompanies.includes(company.id) 
+                                      ? `${colors.primary}10`
+                                      : index % 2 === 0
+                                        ? theme === 'light' ? 'rgba(249, 250, 251, 0.5)' : 'rgba(31, 41, 55, 0.5)'
+                                        : 'transparent',
+                                    borderLeft: favoriteCompanies.includes(company.id)
+                                      ? `4px solid ${colors.primary}`
+                                      : '4px solid transparent',
                                   }}
-                                  onClick={() => isSelectionMode 
+                                  onClick={() => isSelectionMode
                                     ? handleCompanySelection(company.id)
                                     : handleCompanyClick(company.id)
                                   }
-                                  whileHover={{ 
-                                    backgroundColor: theme === 'light' 
-                                      ? 'rgba(243, 244, 246, 0.7)' 
-                                      : 'rgba(55, 65, 81, 0.7)' 
+                                  whileHover={{
+                                    backgroundColor: theme === 'light'
+                                      ? 'rgba(243, 244, 246, 0.7)'
+                                      : 'rgba(55, 65, 81, 0.7)',
+                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                                    scale: 1.0025,
+                                    y: -1
                                   }}
                                 >
                                   {isSelectionMode && (
-                                    <td className="pl-3 pr-1 py-4">
-                                      <div 
-                                        className="w-5 h-5 rounded-md"
-                                        style={{ 
-                                          backgroundColor: selectedCompanies.includes(company.id) 
-                                            ? colors.primary 
+                                    <td className="pl-4 pr-0 py-4 align-middle w-10">
+                                      <div
+                                        className="w-5 h-5 rounded-md cursor-pointer transition-all duration-150 flex items-center justify-center"
+                                        style={{
+                                          backgroundColor: selectedCompanies.includes(company.id)
+                                            ? colors.primary
                                             : theme === 'light' ? 'white' : colors.card,
-                                          border: `1px solid ${selectedCompanies.includes(company.id) 
-                                            ? colors.primary 
-                                            : colors.border}`
+                                          border: `1px solid ${selectedCompanies.includes(company.id)
+                                            ? colors.primary
+                                            : colors.border}`,
+                                          boxShadow: selectedCompanies.includes(company.id)
+                                            ? `0 0 0 2px ${colors.primary}30`
+                                            : 'none'
                                         }}
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -2188,135 +2321,450 @@ const CompaniesPage = () => {
                                         }}
                                       >
                                         {selectedCompanies.includes(company.id) && (
-                                          <div className="flex items-center justify-center h-full">
+                                          <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                                          >
                                             <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                             </svg>
-                                          </div>
+                                          </motion.div>
                                         )}
                                       </div>
                                     </td>
                                   )}
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center">
-                                      <div 
-                                        className="flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-white text-sm font-medium"
-                                        style={{ backgroundColor: getIndustryColor(company.industry).text }}
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <div className="flex items-center max-w-[250px]">
+                                      <motion.div
+                                        className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-semibold shadow-sm overflow-hidden"
+                                        style={{
+                                          background: `linear-gradient(135deg, ${getIndustryColor(company.industry).text}, ${getIndustryColor(company.industry).border})`
+                                        }}
+                                        whileHover={{ scale: 1.1 }}
+                                        transition={{ type: "spring", stiffness: 400, damping: 15 }}
                                       >
-                                        {company.name.charAt(0)}
-                                      </div>
-                                      <div className="ml-3">
+                                        <motion.span
+                                          initial={{ opacity: 0, scale: 0.5 }}
+                                          animate={{ opacity: 1, scale: 1 }}
+                                          transition={{ delay: 0.1, type: "spring" }}
+                                        >
+                                          {company.name.charAt(0)}
+                                        </motion.span>
+                                      </motion.div>
+                                      <div className="ml-3 overflow-hidden">
                                         <div className="flex items-center gap-2">
-                                          <div className="font-medium" style={{ color: colors.text }}>
+                                          <motion.div
+                                            className="font-medium text-base truncate max-w-[180px]"
+                                            style={{ color: colors.text }}
+                                            initial={{ opacity: 0, x: -5 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.15 }}
+                                          >
                                             {company.name}
-                                          </div>
+                                          </motion.div>
                                           {favoriteCompanies.includes(company.id) && (
-                                            <svg 
-                                              className="w-4 h-4" 
-                                              fill="currentColor" 
-                                              viewBox="0 0 20 20" 
-                                              style={{ color: '#F59E0B' }}
-                                              xmlns="http://www.w3.org/2000/svg"
+                                            <motion.div
+                                              initial={{scale: 0}}
+                                              animate={{scale: 1}}
+                                              transition={{ type: "spring", stiffness: 500, damping: 15 }}
                                             >
-                                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                            </svg>
+                                              <svg
+                                                className="w-4 h-4 flex-shrink-0"
+                                                fill="currentColor"
+                                                viewBox="0 0 20 20"
+                                                style={{ color: '#F59E0B' }}
+                                                xmlns="http://www.w3.org/2000/svg"
+                                              >
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                              </svg>
+                                            </motion.div>
                                           )}
                                         </div>
+                                        
                                         {company.website && (
-                                          <div className="text-xs truncate max-w-[200px]" style={{ color: `${colors.text}80` }}>
-                                            {company.website.replace(/(^\w+:|^)\/\//, '').replace(/\/$/, '')}
+                                          <div className="text-xs truncate max-w-[200px] flex items-center gap-1 mt-1 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
+                                            <motion.div
+                                              className="rounded-full p-0.5 bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200"
+                                              style={{ backgroundColor: colors.primary }}
+                                              whileHover={{ rotate: 180 }}
+                                              transition={{ duration: 0.5 }}
+                                            >
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke={colors.primary} viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                              </svg>
+                                            </motion.div>
+                                            <a
+                                              href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="hover:underline group-hover:text-opacity-100 transition-all duration-150 truncate"
+                                              style={{ color: colors.primary, textDecoration: 'none' }}
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              {company.website.replace(/(^\w+:|^)\/\//, '').replace(/\/$/, '')}
+                                            </a>
                                           </div>
                                         )}
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div 
-                                      className="inline-block px-2 py-1 rounded-md text-xs"
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <motion.div
+                                      className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium shadow-sm gap-1.5"
                                       style={{
                                         backgroundColor: getIndustryColor(company.industry).bg,
                                         color: getIndustryColor(company.industry).text,
                                         border: `1px solid ${getIndustryColor(company.industry).border}`
                                       }}
+                                      whileHover={{
+                                        y: -2,
+                                        boxShadow: '0 3px 6px rgba(0,0,0,0.1)',
+                                        backgroundColor: `${getIndustryColor(company.industry).bg}dd`
+                                      }}
+                                      initial={{ opacity: 0, scale: 0.9 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      transition={{ type: "spring", stiffness: 400, damping: 15 }}
                                     >
-                                      {company.industry}
+                                      <motion.div
+                                        whileHover={{ rotate: 360 }}
+                                        transition={{ duration: 0.5 }}
+                                      >
+                                        <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                                        </svg>
+                                      </motion.div>
+                                      <span className="truncate max-w-[100px]" title={company.industry}>{company.industry}</span>
+                                    </motion.div>
+                                  </td>
+                                  <td className="px-4 py-4">
+                                    <div className="flex flex-col max-w-[200px]">
+                                      <div className="flex items-center gap-2 group whitespace-nowrap">
+                                        <motion.div
+                                          className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                                          style={{ backgroundColor: `${colors.secondary}20` }}
+                                          whileHover={{ scale: 1.1, backgroundColor: `${colors.secondary}30` }}
+                                          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke={colors.secondary}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                          </svg>
+                                        </motion.div>
+                                        <span className="font-medium truncate group-hover:text-opacity-90 transition-colors duration-150" 
+                                          style={{ color: colors.text }}
+                                          title={company.contactPerson}
+                                        >
+                                          {company.contactPerson}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2 group mt-1.5">
+                                        <motion.div
+                                          className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                                          style={{ backgroundColor: `${colors.primary}20` }}
+                                          whileHover={{ scale: 1.1, backgroundColor: `${colors.primary}30` }}
+                                          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke={colors.primary}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                          </svg>
+                                        </motion.div>
+                                        <a
+                                          href={`mailto:${company.contactEmail}`}
+                                          className="text-xs truncate max-w-[140px] hover:underline group-hover:text-opacity-100 transition-colors duration-150"
+                                          style={{ color: colors.primary }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          title={company.contactEmail}
+                                        >
+                                          {company.contactEmail || 'N/A'}
+                                        </a>
+                                      </div>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div style={{ color: colors.text }}>
-                                      {company.contactPerson}
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-2">
+                                      <motion.div
+                                        className="flex items-center justify-center w-9 h-9 rounded-full text-xs font-medium"
+                                        style={{
+                                          backgroundColor: company.openPositions > 0
+                                            ? 'rgba(16, 185, 129, 0.15)'
+                                            : `${colors.primary}15`,
+                                          color: company.openPositions > 0
+                                            ? '#10B981'
+                                            : colors.primary,
+                                          border: `1px solid ${company.openPositions > 0
+                                            ? 'rgba(16, 185, 129, 0.3)'
+                                            : `${colors.primary}30`}`
+                                        }}
+                                        whileHover={{ scale: 1.15, y: -2 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 10 }}
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                      >
+                                        {company.openPositions}
+                                      </motion.div>
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium" style={{ color: company.openPositions > 0 ? '#10B981' : colors.primary }}>
+                                          {company.openPositions === 1 ? 'position' : 'positions'}
+                                        </span>
+                                        {company.openPositions > 0 && (
+                                          <span className="text-[10px]" style={{ color: `${colors.text}50` }}>
+                                            active client
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="text-xs truncate max-w-[200px]" style={{ color: `${colors.text}80` }}>
-                                      {company.contactEmail}
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-2 group">
+                                      <motion.div
+                                        className="p-1.5 rounded-full bg-opacity-10 flex-shrink-0"
+                                        style={{ backgroundColor: `${colors.primary}20` }}
+                                        whileHover={{ rotate: 360, backgroundColor: `${colors.primary}30` }}
+                                        transition={{ duration: 0.5 }}
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke={colors.primary}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                      </motion.div>
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium truncate group-hover:text-opacity-90 transition-colors duration-150 max-w-[80px] sm:max-w-[100px]" style={{ color: colors.text }}>
+                                          {new Date(company.createdAt).toLocaleDateString(undefined, {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric'
+                                          })}
+                                        </span>
+                                        <span className="text-[10px] hidden sm:block" style={{ color: `${colors.text}60` }}>
+                                          {formatRelativeDate(company.createdAt)}
+                                        </span>
+                                      </div>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <Badge variant={company.openPositions > 0 ? 'success' : 'primary'}>
-                                      {company.openPositions}
-                                    </Badge>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: `${colors.text}99` }}>
-                                    {new Date(company.createdAt).toLocaleDateString()}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                    <div className="flex justify-end space-x-1">
+                                  <td className="pr-6 pl-4 py-4 whitespace-nowrap text-right">
+                                    <div className="group-hover:opacity-100 opacity-90 transition-opacity duration-200 flex items-center justify-end gap-2">
                                       <motion.button
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           toggleFavorite(company.id);
                                         }}
-                                        className="p-1.5 rounded-full"
-                                        whileHover={{ scale: 1.1 }}
+                                        className={`p-2 rounded-full ${favoriteCompanies.includes(company.id) ? 'bg-amber-50 dark:bg-amber-900 dark:bg-opacity-20' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                        whileHover={{ scale: 1.1, rotate: favoriteCompanies.includes(company.id) ? 0 : 20 }}
                                         whileTap={{ scale: 0.95 }}
-                                        style={{ 
-                                          color: favoriteCompanies.includes(company.id) ? '#F59E0B' : `${colors.text}60` 
+                                        style={{
+                                          color: favoriteCompanies.includes(company.id) ? '#F59E0B' : `${colors.text}60`,
+                                          boxShadow: favoriteCompanies.includes(company.id) ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none'
                                         }}
+                                        initial={{ opacity: 0, x: 5 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: index * 0.05 + 0.2 }}
                                       >
-                                        <svg 
-                                          className="w-4 h-4" 
-                                          fill={favoriteCompanies.includes(company.id) ? 'currentColor' : 'none'} 
-                                          stroke="currentColor" 
-                                          viewBox="0 0 24 24" 
-                                          xmlns="http://www.w3.org/2000/svg"
+                                        <motion.div
+                                          animate={favoriteCompanies.includes(company.id) ? { scale: [1, 1.2, 1] } : {}}
+                                          transition={{ repeat: 0, duration: 0.3 }}
                                         >
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={favoriteCompanies.includes(company.id) ? 0 : 2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                                        </svg>
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill={favoriteCompanies.includes(company.id) ? 'currentColor' : 'none'}
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                          >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={favoriteCompanies.includes(company.id) ? 0 : 1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                          </svg>
+                                        </motion.div>
+                                        <span className="sr-only">
+                                          {favoriteCompanies.includes(company.id) ? 'Remove from favorites' : 'Add to favorites'}
+                                        </span>
                                       </motion.button>
-                                      <motion.button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleCompanyClick(company.id);
-                                        }}
-                                        className="p-1.5 rounded text-xs"
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        style={{ 
-                                          backgroundColor: `${colors.primary}20`,
-                                          color: colors.primary
-                                        }}
-                                      >
-                                        View
-                                      </motion.button>
-                                      <motion.button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteCompany(company.id);
-                                        }}
-                                        className="p-1.5 rounded text-xs"
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        style={{ 
-                                          backgroundColor: theme === 'light' ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.2)',
-                                          color: '#EF4444'
-                                        }}
-                                      >
-                                        Delete
-                                      </motion.button>
+                                      
+                                      <div className="relative sm:hidden">
+                                        <motion.button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setHoveredCompany(hoveredCompany === company.id ? null : company.id);
+                                          }}
+                                          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                                          whileHover={{ scale: 1.1 }}
+                                          whileTap={{ scale: 0.95 }}
+                                          style={{ color: hoveredCompany === company.id ? colors.primary : colors.text }}
+                                        >
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                                          </svg>
+                                        </motion.button>
+                                        
+                                        <AnimatePresence>
+                                          {hoveredCompany === company.id && (
+                                            <motion.div
+                                              initial={{ opacity: 0, scale: 0.95, y: 5, x: -40 }}
+                                              animate={{ opacity: 1, scale: 1, y: 0, x: -110 }}
+                                              exit={{ opacity: 0, scale: 0.95, y: 5 }}
+                                              transition={{ duration: 0.2 }}
+                                              className="absolute top-0 right-0 mt-10 z-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border"
+                                              style={{ borderColor: colors.border }}
+                                            >
+                                              <div className="py-1 w-[140px]">
+                                                <motion.button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleCompanyClick(company.id);
+                                                  }}
+                                                  className="flex items-center w-full px-4 py-2 text-left text-sm"
+                                                  whileHover={{
+                                                    backgroundColor: theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'
+                                                  }}
+                                                  style={{ color: colors.primary }}
+                                                >
+                                                  <svg className="w-3.5 h-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                  </svg>
+                                                  View Details
+                                                </motion.button>
+                                                <motion.button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteCompany(company.id);
+                                                    setHoveredCompany(null);
+                                                  }}
+                                                  className="flex items-center w-full px-4 py-2 text-left text-sm"
+                                                  whileHover={{
+                                                    backgroundColor: theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'
+                                                  }}
+                                                  style={{ color: '#EF4444' }}
+                                                >
+                                                  <svg className="w-3.5 h-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                  </svg>
+                                                  Delete
+                                                </motion.button>
+                                              </div>
+                                            </motion.div>
+                                          )}
+                                        </AnimatePresence>
+                                      </div>
+                                      
+                                      <motion.div className="hidden sm:flex gap-2">
+                                        <motion.button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCompanyClick(company.id);
+                                          }}
+                                          className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 relative overflow-hidden"
+                                          whileHover={{ scale: 1.05, y: -1 }}
+                                          whileTap={{ scale: 0.95 }}
+                                          style={{
+                                            backgroundColor: `${colors.primary}15`,
+                                            color: colors.primary,
+                                            border: `1px solid ${colors.primary}30`
+                                          }}
+                                          initial={{ opacity: 0, x: 5 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ delay: index * 0.05 + 0.3 }}
+                                        >
+                                          <motion.span
+                                            className="absolute inset-0 opacity-0"
+                                            initial={{ opacity: 0 }}
+                                            whileHover={{ opacity: 0.1 }}
+                                            style={{ backgroundColor: colors.primary }}
+                                          />
+                                          <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.5 }}>
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                          </motion.div>
+                                          <span>View</span>
+                                        </motion.button>
+                                        
+                                        <motion.button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteCompany(company.id);
+                                          }}
+                                          className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 relative overflow-hidden"
+                                          whileHover={{ scale: 1.05, y: -1 }}
+                                          whileTap={{ scale: 0.95 }}
+                                          style={{
+                                            backgroundColor: 'rgba(239,68,68,0.15)',
+                                            color: '#EF4444',
+                                            border: '1px solid rgba(239,68,68,0.3)'
+                                          }}
+                                          initial={{ opacity: 0, x: 5 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ delay: index * 0.05 + 0.4 }}
+                                        >
+                                          <motion.span
+                                            className="absolute inset-0 opacity-0"
+                                            initial={{ opacity: 0 }}
+                                            whileHover={{ opacity: 0.1 }}
+                                            style={{ backgroundColor: '#EF4444' }}
+                                          />
+                                          <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.3 }}>
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                          </motion.div>
+                                          <span>Delete</span>
+                                        </motion.button>
+                                      </motion.div>
                                     </div>
                                   </td>
                                 </motion.tr>
                               ))}
+                              
+                              {companies.length === 0 && (
+                                <tr>
+                                  <td colSpan={isSelectionMode ? 7 : 6} className="px-6 py-12 text-center">
+                                    <motion.div
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ duration: 0.3 }}
+                                      className="flex flex-col items-center"
+                                    >
+                                      <svg className="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                      <p className="mb-2" style={{ color: colors.text }}>No companies found in this group</p>
+                                      <p className="text-sm" style={{ color: `${colors.text}70` }}>
+                                        Try adjusting your filters or add a new company
+                                      </p>
+                                    </motion.div>
+                                  </td>
+                                </tr>
+                              )}
                             </tbody>
+                            
+                            <tfoot className="bg-gray-50 dark:bg-gray-800 border-t" style={{ borderColor: colors.border }}>
+                              <tr>
+                                <td colSpan={isSelectionMode ? 7 : 6} className="px-6 py-3">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span style={{ color: `${colors.text}80` }}>
+                                      Showing <span className="font-medium" style={{ color: colors.text }}>{companies.length}</span> companies
+                                    </span>
+                                    {selectedCompanies.length > 0 && (
+                                      <div className="flex items-center gap-2">
+                                        <span style={{ color: `${colors.text}80` }}>
+                                          Selected: <span className="font-medium" style={{ color: colors.primary }}>{selectedCompanies.length}</span>
+                                        </span>
+                                        <Button 
+                                          variant="danger" 
+                                          size="xs"
+                                          onClick={handleBulkDelete}
+                                          leftIcon={
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                          }
+                                        >
+                                          Delete Selected
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            </tfoot>
                           </table>
                         </div>
                       </Card>
@@ -2660,6 +3108,7 @@ const CompaniesPage = () => {
       </motion.div>
     )}
   </AnimatePresence>
+</motion.div>
 </AnimatePresence>
 );
 };
